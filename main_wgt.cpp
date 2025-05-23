@@ -158,72 +158,20 @@ void Main_Wgt::slotWriteMask()
 
 void Main_Wgt::slotModifyFile()
 {
-    QByteArray bAr;
-    QFile file(myLineEditP->text());
-    if(file.open(QIODevice::ReadWrite))
-    {
-        bAr = file.readAll();
-        size_t size = bAr.size();
-        for(size_t i = 0; i < size; i++)
-        {
-            bAr[i] = bAr[i] ^ mask;
-            modifyProgress = size / 100 * i;
-        }
-        modifyProgress = UINT16_MAX;
-        timerResetProgressP->start();
+    QThread* threadP = new QThread;
+        Worker_t* workerP = new Worker_t(myLineEditP->text(), cmbboxFileMaskP->currentText(), mask, cbxModifyFileNameP->isChecked(), cbxDeleteFileP->isChecked(), &mapFileNames);
 
-        if(cbxModifyFileNameP->isChecked())
-        {
-            file.close();
+        workerP->moveToThread(threadP);
 
-            QString fileName = file.fileName();
-            auto iter = mapFileNames.find(fileName);
-            if(iter != mapFileNames.end()) // such file already exists
-            {
-                iter.value() = iter.value() + 1;
-            }
-            else
-            {
-                mapFileNames.insert(fileName, 2);
-                iter = mapFileNames.find(fileName);
-                qDebug() << "iter.value() = " << iter.value();
-            }
+        connect(threadP, &QThread::started, workerP, &Worker_t::slotModifyFile);
+        connect(threadP, &QThread::finished, threadP, &QThread::deleteLater);
+        connect(workerP, &Worker_t::signalSendProgress, this, &Main_Wgt::slotSetProgress);
+        connect(workerP, &Worker_t::signalResetProgress, this, &Main_Wgt::slotResetProgressBar2);
+        connect(workerP, &Worker_t::signalIsSuccess, this, &Main_Wgt::slotIsSuccess);
 
-            for(size_t i = 0; i < 4; i++)
-            {
-                fileName.removeLast();
-            }
-            fileName.append(QString::number(iter.value()) + cmbboxFileMaskP->currentText());
-            file.setFileName(fileName);
-            file.open(QIODevice::ReadWrite);
-        }
+        threadP->start();
 
-        if(cbxDeleteFileP->isChecked())
-        {
-            file.remove();
-            QFile fileNew(QFileDialog::getSaveFileName(this, "Name file", "test", "*.txt;; *.bin")); // save changed byteAr in file
-            if(fileNew.open(QIODevice::ReadWrite))
-            {
-                fileNew.resize(0);
-                fileNew.write(bAr);
-            }
-            fileNew.close();
-        }
-        else
-        {
-            file.resize(0);
-            file.write(bAr);
-            file.close();
-
-            btnModifyFileP->setStyleSheet("background-color: YellowGreen");
-            timerModifyStatusP->start();
-        }
-    }
-    else
-    {
-        btnModifyFileP->setStyleSheet("background-color: Crimson");
-        timerModifyStatusP->start();
-    }
+        qDebug() << "THREAD 1";
 }
 
 void Main_Wgt::slotTimerControl()
@@ -254,4 +202,28 @@ void Main_Wgt::slotResetProgressBar()
 {
     modifyProgress = 0;
     timerResetProgressP->stop();
+}
+
+void Main_Wgt::slotSetProgress(uint8_t progr)
+{
+    modifyProgress = progr;
+}
+
+void Main_Wgt::slotResetProgressBar2()
+{
+    timerResetProgressP->start();
+}
+
+void Main_Wgt::slotIsSuccess(bool result)
+{
+    if(result)
+    {
+        btnModifyFileP->setStyleSheet("background-color: YellowGreen");
+        timerModifyStatusP->start();
+    }
+    else
+    {
+        btnModifyFileP->setStyleSheet("background-color: Crimson");
+        timerModifyStatusP->start();
+    }
 }
