@@ -18,10 +18,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     main.cpp \
     main_wgt.cpp \
+    my_thread.cpp \
     mylineedit.cpp
 
 HEADERS += \
     main_wgt.h \
+    my_thread.h \
     mylineedit.h
 
 # Default rules for deployment.
