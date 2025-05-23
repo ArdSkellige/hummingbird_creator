@@ -12,6 +12,7 @@
 #include <QWidget>
 
 #include "mylineedit.h"
+#include "my_thread.h"
 
 class Main_Wgt : public QWidget
 {
@@ -64,5 +65,9 @@ public slots:
     void slotColorFile();
     void slotProgress();
     void slotResetProgressBar();
+
+    void slotSetProgress(uint8_t progr);
+    void slotResetProgressBar2();
+    void slotIsSuccess(bool result);
 };
 #endif // MAIN_WGT_H
